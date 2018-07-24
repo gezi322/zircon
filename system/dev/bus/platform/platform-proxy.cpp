@@ -563,11 +563,22 @@ static zx_status_t platform_dev_get_device_info(void* ctx, pdev_device_info_t* o
     return ZX_OK;
 }
 
+static zx_status_t platform_dev_device_add(void* ctx, uint32_t index, device_add_args_t* args,
+                                           zx_device_t** out) {
+
+    if (!args || args->flags & DEVICE_ADD_MUST_ISOLATE) {
+        return ZX_ERR_INVALID_ARGS;
+    }
+    return -1;
+
+}
+
 static platform_device_protocol_ops_t platform_dev_proto_ops = {
     .map_mmio = platform_dev_map_mmio,
     .map_interrupt = platform_dev_map_interrupt,
     .get_bti = platform_dev_get_bti,
     .get_device_info = platform_dev_get_device_info,
+    .device_add = platform_dev_device_add,
 };
 
 static zx_status_t platform_dev_get_protocol(void* ctx, uint32_t proto_id, void* out) {

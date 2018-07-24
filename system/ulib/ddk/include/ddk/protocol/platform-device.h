@@ -38,6 +38,8 @@ typedef struct {
     zx_status_t (*map_interrupt)(void* ctx, uint32_t index, uint32_t flags, zx_handle_t* out_handle);
     zx_status_t (*get_bti)(void* ctx, uint32_t index, zx_handle_t* out_handle);
     zx_status_t (*get_device_info)(void* ctx, pdev_device_info_t* out_info);
+    zx_status_t (*device_add)(void* ctx, uint32_t index, device_add_args_t* args,
+                              zx_device_t** out);
 } platform_device_protocol_ops_t;
 
 typedef struct {
@@ -83,6 +85,11 @@ static inline zx_status_t pdev_get_bti(const platform_device_protocol_t* pdev, u
 static inline zx_status_t pdev_get_device_info(const platform_device_protocol_t* pdev,
                                                pdev_device_info_t* out_info) {
     return pdev->ops->get_device_info(pdev->ctx, out_info);
+}
+
+static inline zx_status_t pdev_device_add(const platform_device_protocol_t* pdev, uint32_t index,
+                                          device_add_args_t* args, zx_device_t** out) {
+    return pdev->ops->device_add(pdev->ctx, index, args, out);
 }
 
 // MMIO mapping helpers
