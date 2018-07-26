@@ -581,7 +581,22 @@ zx_status_t platform_device_add(platform_bus_t* bus, const pbus_dev_t* pdev, uin
         return ZX_ERR_INVALID_ARGS;
     }
 
-    platform_dev_t* dev = static_cast<platform_dev_t*>(calloc(1, sizeof(platform_dev_t)));
+    platform_dev_t* dev;
+    if (pdev->parent) {
+        // find parent device, which should have been added by now
+        list_for_every_entry(&bus->devices, dev, platform_dev_t, node) {
+            if (dev->pdev == pdev->parent) {
+                dev->parent = dev;
+                break;
+            }
+        }
+        if (dev->parent == NULL) {
+            zxlogf(ERROR, "platform_device_add: parent device not found\n");
+            return ZX_ERR_INVALID_ARGS;
+        }
+    }
+
+    dev = static_cast<platform_dev_t*>(calloc(1, sizeof(platform_dev_t)));
     if (!dev) {
         return ZX_ERR_NO_MEMORY;
     }
@@ -670,7 +685,7 @@ zx_status_t platform_device_add(platform_bus_t* bus, const pbus_dev_t* pdev, uin
 
     list_add_tail(&bus->devices, &dev->node);
 
-    if ((flags & PDEV_ADD_DISABLED) == 0) {
+    if (pdev->parent == NULL && (flags & PDEV_ADD_DISABLED) == 0) {
         status = platform_device_enable(dev, true);
     }
 

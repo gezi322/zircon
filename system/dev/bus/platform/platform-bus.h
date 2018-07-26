@@ -53,9 +53,11 @@ typedef struct {
 } platform_bus_t;
 
 // context structure for a platform device
-typedef struct {
+typedef struct platform_dev {
     zx_device_t* zxdev;
     platform_bus_t* bus;
+    const pbus_dev_t* pdev;
+    struct platform_dev* parent;
     list_node_t node;
     char name[ZX_DEVICE_NAME_MAX + 1];
     uint32_t flags;

@@ -49,10 +49,9 @@ typedef struct {
     size_t      len;    // metadata length in bytes (set to zero for bootloader metadata)
 } pbus_metadata_t;
 
-typedef struct pbus_dev pbus_dev_t;
-struct pbus_dev {
+typedef struct pbus_dev {
     const char* name;
-    pbus_dev_t* parent;
+    struct pbus_dev* parent;
     uint32_t parent_index;
     uint32_t vid;   // BIND_PLATFORM_DEV_VID
     uint32_t pid;   // BIND_PLATFORM_DEV_PID
@@ -72,7 +71,7 @@ struct pbus_dev {
     uint32_t bti_count;
     const pbus_metadata_t* metadata;
     uint32_t metadata_count;
-};
+} pbus_dev_t;
 
 // flags for pbus_device_add()
 enum {

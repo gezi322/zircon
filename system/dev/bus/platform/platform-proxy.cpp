@@ -21,7 +21,12 @@
 typedef struct {
     zx_device_t* zxdev;
     zx_handle_t rpc_channel;
+    uint32_t device_id;
+    zx_status_t (*get_protocol)(void* ctx, uint32_t proto_id, void* protocol);
+    void* ctx;
 } platform_proxy_t;
+
+static zx_status_t platform_dev_get_protocol(void* ctx, uint32_t proto_id, void* out);
 
 static zx_status_t platform_dev_rpc(platform_proxy_t* proxy, pdev_req_t* req, uint32_t req_length,
                                     pdev_resp_t* resp, uint32_t resp_length,
@@ -30,6 +35,7 @@ static zx_status_t platform_dev_rpc(platform_proxy_t* proxy, pdev_req_t* req, ui
                                     uint32_t* out_data_received) {
     uint32_t resp_size, handle_count;
 
+    req->device_id = proxy->device_id;
     zx_channel_call_args_t args = {
         .wr_bytes = req,
         .wr_handles = in_handles,
@@ -396,6 +402,7 @@ static zx_status_t pdev_i2c_transact(void* ctx, uint32_t index, const void* writ
             .txid = 0,
             .op = PDEV_I2C_TRANSACT,
             .index = index,
+            .device_id = 0,
             .i2c_txn = {
                 .write_length = write_length,
                 .read_length = read_length,
@@ -565,12 +572,40 @@ static zx_status_t platform_dev_get_device_info(void* ctx, pdev_device_info_t* o
 
 static zx_status_t platform_dev_device_add(void* ctx, uint32_t index, device_add_args_t* args,
                                            zx_device_t** out) {
-
     if (!args || args->flags & DEVICE_ADD_MUST_ISOLATE) {
         return ZX_ERR_INVALID_ARGS;
     }
-    return -1;
 
+    platform_proxy_t* proxy = static_cast<platform_proxy_t*>(ctx);
+    pdev_req_t req = {};
+    req.op = PDEV_DEVICE_ADD;
+    req.index = index;
+    pdev_resp_t resp;
+
+    zx_status_t status = platform_dev_rpc(proxy, &req, sizeof(req), &resp, sizeof(resp),
+                                          NULL, 0, NULL, 0, NULL);
+    if (status != ZX_OK) {
+        return status;
+    }
+
+    platform_proxy_t* new_proxy =
+            static_cast<platform_proxy_t*>(calloc(1, sizeof(platform_proxy_t)));
+    if (!new_proxy) {
+        return ZX_ERR_NO_MEMORY;
+    }
+    new_proxy->rpc_channel = new_proxy->rpc_channel;
+    new_proxy->device_id = resp.new_device_id;
+    if (args->ops) {
+        new_proxy->get_protocol = args->ops->get_protocol;
+        args->ops->get_protocol = platform_dev_get_protocol;
+    }
+
+    status = device_add(proxy->zxdev, args, &new_proxy->zxdev);
+    if (status != ZX_OK) {
+        free(new_proxy);
+    }
+
+    return status;
 }
 
 static platform_device_protocol_ops_t platform_dev_proto_ops = {
@@ -582,6 +617,8 @@ static platform_device_protocol_ops_t platform_dev_proto_ops = {
 };
 
 static zx_status_t platform_dev_get_protocol(void* ctx, uint32_t proto_id, void* out) {
+    platform_proxy_t* proxy = static_cast<platform_proxy_t*>(ctx);
+
     switch (proto_id) {
     case ZX_PROTOCOL_PLATFORM_DEV: {
         platform_device_protocol_t* proto = static_cast<platform_device_protocol_t*>(out);
@@ -632,6 +669,9 @@ static zx_status_t platform_dev_get_protocol(void* ctx, uint32_t proto_id, void*
         return ZX_OK;
     }
     default:
+        if (proxy->get_protocol) {
+            return proxy->get_protocol(ctx, proto_id, out);
+        }
         return ZX_ERR_NOT_SUPPORTED;
     }
 }
