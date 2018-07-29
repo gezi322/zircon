@@ -22,11 +22,12 @@ typedef struct {
     zx_device_t* zxdev;
     zx_handle_t rpc_channel;
     uint32_t device_id;
-    zx_status_t (*get_protocol)(void* ctx, uint32_t proto_id, void* protocol);
-    void* ctx;
+
+    zx_protocol_device_t child_ops;
+    void* child_ctx;
 } platform_proxy_t;
 
-static zx_status_t platform_dev_get_protocol(void* ctx, uint32_t proto_id, void* out);
+static zx_protocol_device_t platform_dev_proto;
 
 static zx_status_t platform_dev_rpc(platform_proxy_t* proxy, pdev_req_t* req, uint32_t req_length,
                                     pdev_resp_t* resp, uint32_t resp_length,
@@ -596,9 +597,11 @@ static zx_status_t platform_dev_device_add(void* ctx, uint32_t index, device_add
     new_proxy->rpc_channel = new_proxy->rpc_channel;
     new_proxy->device_id = resp.new_device_id;
     if (args->ops) {
-        new_proxy->get_protocol = args->ops->get_protocol;
-        args->ops->get_protocol = platform_dev_get_protocol;
+        memcpy(&new_proxy->child_ops, args->ops, sizeof(new_proxy->child_ops));
     }
+    args->ops = &platform_dev_proto;
+    new_proxy->child_ctx = args->ctx;
+    args->ctx = new_proxy;
 
     status = device_add(proxy->zxdev, args, &new_proxy->zxdev);
     if (status != ZX_OK) {
@@ -669,8 +672,8 @@ static zx_status_t platform_dev_get_protocol(void* ctx, uint32_t proto_id, void*
         return ZX_OK;
     }
     default:
-        if (proxy->get_protocol) {
-            return proxy->get_protocol(ctx, proto_id, out);
+        if (proxy->child_ops.get_protocol) {
+            return proxy->child_ops.get_protocol(ctx, proto_id, out);
         }
         return ZX_ERR_NOT_SUPPORTED;
     }
