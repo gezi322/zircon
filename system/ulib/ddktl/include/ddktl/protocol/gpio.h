@@ -93,6 +93,11 @@ public:
     GpioProtocolProxy(gpio_protocol_t* proto)
         : ops_(proto->ops), ctx_(proto->ctx) {}
 
+    void GetProto(gpio_protocol_t* proto) {
+        proto->ctx = ctx_;
+        proto->ops = ops_;
+    }
+
     zx_status_t GpioConfig(uint32_t index, uint32_t flags) {
         return ops_->config(ctx_, index, flags);
     }

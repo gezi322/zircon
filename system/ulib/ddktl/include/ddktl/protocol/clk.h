@@ -67,6 +67,11 @@ public:
     ClkProtocolProxy(clk_protocol_t* proto)
         : ops_(proto->ops), ctx_(proto->ctx) {}
 
+    void GetProto(clk_protocol_t* proto) {
+        proto->ctx = ctx_;
+        proto->ops = ops_;
+    }
+
     zx_status_t ClkEnable(uint32_t index) {
         return ops_->enable(ctx_, index);
     }

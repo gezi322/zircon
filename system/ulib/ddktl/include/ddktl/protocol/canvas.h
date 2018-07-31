@@ -69,6 +69,11 @@ public:
     CanvasProtocolProxy(canvas_protocol_t* proto)
         : ops_(proto->ops), ctx_(proto->ctx) {}
 
+    void GetProto(canvas_protocol_t* proto) {
+        proto->ctx = ctx_;
+        proto->ops = ops_;
+    }
+
     zx_status_t CanvasConfig(zx_handle_t vmo, size_t offset, canvas_info_t* info,
                              uint8_t* canvas_idx) {
         return ops_->config(ctx_, vmo, offset, info, canvas_idx);

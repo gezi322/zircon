@@ -82,6 +82,11 @@ public:
     ScpiProtocolProxy(scpi_protocol_t* proto)
         : ops_(proto->ops), ctx_(proto->ctx) {}
 
+    void GetProto(scpi_protocol_t* proto) {
+        proto->ctx = ctx_;
+        proto->ops = ops_;
+    }
+
     zx_status_t ScpiGetSensor(const char* name, uint32_t* sensor_id) {
         return ops_->get_sensor(ctx_, name, sensor_id);
     }

@@ -62,6 +62,11 @@ public:
     UmsProtocolProxy(usb_mode_switch_protocol_t* proto)
         : ops_(proto->ops), ctx_(proto->ctx) {}
 
+    void GetProto(usb_mode_switch_protocol_t* proto) {
+        proto->ctx = ctx_;
+        proto->ops = ops_;
+    }
+
     zx_status_t UmsSetMode(usb_mode_t mode) {
         return ops_->set_mode(ctx_, mode);
     }

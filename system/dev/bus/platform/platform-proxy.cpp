@@ -466,7 +466,7 @@ zx_status_t PlatformProxy::Init() {
             pdev_req_t req = {};
             pdev_resp_t resp;
             zx_handle_t rsrc_handle;
-        
+
             req.op = PDEV_GET_MMIO;
             req.index = i;
             status = Rpc(&req, sizeof(req), &resp, sizeof(resp), NULL, 0, &rsrc_handle, 1, NULL);
@@ -477,7 +477,7 @@ zx_status_t PlatformProxy::Init() {
             Mmio mmio;
             mmio.base = resp.mmio.paddr;
             mmio.length = resp.mmio.length;
-            mmio.resource.reset(rsrc_handle);            
+            mmio.resource.reset(rsrc_handle);
             mmios_.push_back(fbl::move(mmio), &ac);
             if (!ac.check()) {
                 return ZX_ERR_NO_MEMORY;
@@ -487,7 +487,7 @@ zx_status_t PlatformProxy::Init() {
                    mmio.base, mmio.length, mmio.resource.get());
         }
     }
-    
+
     if (info.irq_count) {
         for (uint32_t i = 0; i < info.irq_count; i++) {
             pdev_req_t req = {};
